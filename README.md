@@ -1,143 +1,206 @@
 # Cloud Security Findings Dashboard
 
-A portfolio-ready MVP for bringing cloud-security findings into one understandable remediation workflow. It imports simulated AWS Security Hub and Microsoft Defender for Cloud records, validates and normalizes them, stores them in SQLite, and presents security leaders and engineering teams with actionable ownership, SLA, severity, and cloud-provider metrics.
+Cloud security tools are good at finding problems, but each provider reports them in a different format. This project brings simulated AWS Security Hub and Microsoft Defender for Cloud findings into one place so they can be reviewed, assigned, and tracked through remediation.
 
-> Screenshot placeholder: add a dashboard screenshot at `docs/dashboard.png` after deployment.
+The application validates each imported record, converts provider-specific fields into a shared model, stores the result in SQLite, and displays the findings in a searchable dashboard. It is intentionally a focused MVP: there are no live cloud credentials, automated remediations, or unnecessary services involved.
 
-## Architecture
+> **Screenshot:** A dashboard screenshot will be added at `docs/dashboard.png`.
+
+## What it does
+
+- Imports realistic sample exports from AWS Security Hub and Microsoft Defender for Cloud
+- Normalizes severity, status, ownership, resource, and account information
+- Reports invalid records individually instead of rejecting an entire batch
+- Prevents duplicate findings from the same source
+- Tracks ownership, due dates, remediation guidance, and resolution notes
+- Calculates overdue findings using the current date
+- Records every status change in a basic audit history
+- Provides summary metrics and a searchable, filterable findings table
+- Exposes the same data through a documented REST API
+
+## How it works
 
 ```mermaid
 flowchart LR
-    A[AWS Security Hub JSON] --> N[Source normalizers]
-    Z[Defender for Cloud JSON] --> N
-    M[Manual API entry] --> V[Pydantic validation]
+    AWS[AWS Security Hub JSON] --> N[Source normalizers]
+    Azure[Defender for Cloud JSON] --> N
+    Manual[Manual API entry] --> V[Pydantic validation]
     N --> V
-    V --> S[(SQLite via SQLAlchemy)]
-    S --> API[FastAPI JSON API]
-    S --> UI[Jinja HTML dashboard]
+    V --> DB[(SQLite via SQLAlchemy)]
+    DB --> API[FastAPI API]
+    DB --> UI[Jinja dashboard]
     API --> UI
 ```
 
-The app deliberately uses one deployable FastAPI service. Route handlers deal with HTTP, `services/normalization.py` maps vendor data, `services/importer.py` manages per-record import outcomes, SQLAlchemy owns persistence, and Pydantic defines the API boundary. Jinja templates plus a small amount of dependency-free JavaScript provide the UI.
+The project runs as a single FastAPI application. HTTP concerns live in `app/routes`, provider-specific mapping lives in `app/services/normalization.py`, and import behavior lives in `app/services/importer.py`. SQLAlchemy handles persistence, while Pydantic validates data at the API boundary. The frontend uses Jinja templates, CSS, and a small amount of plain JavaScript.
 
-## Quick start
+This structure keeps the code easy to follow while separating the parts most likely to change. For example, another security provider could be added by writing a new normalizer without rebuilding the dashboard or database layer.
 
-Python 3.10+ is recommended (the container and CI use 3.12).
+## Run it locally
+
+Python 3.10 or newer is recommended. The Docker image and GitHub Actions workflow use Python 3.12.
 
 ```bash
+git clone https://github.com/Zach-Fogle/Cloud-security-dashboard.git
+cd Cloud-security-dashboard
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
 
-Open <http://localhost:8000>. Interactive API documentation is at <http://localhost:8000/docs>.
+Open the dashboard at <http://127.0.0.1:8000>. FastAPI's interactive API documentation is available at <http://127.0.0.1:8000/docs>.
 
-Import the included data to populate the dashboard:
+### Add the sample data
+
+With the application running, open another terminal in the project directory and import the included sample files:
 
 ```bash
-curl -X POST http://localhost:8000/api/imports \
-  -H 'Content-Type: application/json' \
-  --data-binary @sample-data/aws-security-hub.json
+curl -X POST "http://127.0.0.1:8000/api/imports" \
+  -H "Content-Type: application/json" \
+  --data-binary "@sample-data/aws-security-hub.json"
 
-curl -X POST http://localhost:8000/api/imports \
-  -H 'Content-Type: application/json' \
-  --data-binary @sample-data/microsoft-defender-cloud.json
+curl -X POST "http://127.0.0.1:8000/api/imports" \
+  -H "Content-Type: application/json" \
+  --data-binary "@sample-data/microsoft-defender-cloud.json"
 ```
 
-### Docker
+Each file contains three simulated findings. Importing a file again does not create duplicate records; the response reports them as duplicates instead.
+
+### Run with Docker
+
+If Docker Desktop is installed, the whole application can be started with:
 
 ```bash
 docker compose up --build
 ```
 
-Compose persists SQLite in a named volume. No credentials are required.
+The dashboard will be available at <http://127.0.0.1:8000>. Docker Compose stores the SQLite database in a named volume, so the data remains available after the container stops.
 
 ## API examples
 
-List filtered, overdue findings:
+Retrieve high-severity, overdue AWS findings:
 
 ```bash
-curl 'http://localhost:8000/api/findings?severity=high&provider=aws&overdue=true'
+curl "http://127.0.0.1:8000/api/findings?severity=high&provider=aws&overdue=true"
 ```
 
-Create a manual finding:
+Create a finding manually:
 
 ```bash
-curl -X POST http://localhost:8000/api/findings \
-  -H 'Content-Type: application/json' \
+curl -X POST "http://127.0.0.1:8000/api/findings" \
+  -H "Content-Type: application/json" \
   -d '{
-    "source":"manual","source_finding_id":"IR-1042","title":"Public database snapshot",
-    "description":"A production snapshot is shared publicly.","severity":"critical","status":"open",
-    "cloud_provider":"aws","account_id":"111122223333","resource_type":"RDS snapshot",
-    "resource_id":"rds:prod-snapshot","application":"Billing","owner":"Platform Security",
-    "environment":"production","first_detected_at":"2026-08-05T10:00:00Z","due_date":"2026-08-06",
-    "remediation_guidance":"Remove public sharing and review snapshot access logs."
+    "source": "manual",
+    "source_finding_id": "IR-1042",
+    "title": "Public database snapshot",
+    "description": "A production snapshot is shared publicly.",
+    "severity": "critical",
+    "status": "open",
+    "cloud_provider": "aws",
+    "account_id": "111122223333",
+    "resource_type": "RDS snapshot",
+    "resource_id": "rds:prod-snapshot",
+    "application": "Billing",
+    "owner": "Platform Security",
+    "environment": "production",
+    "first_detected_at": "2026-08-05T10:00:00Z",
+    "due_date": "2026-08-06",
+    "remediation_guidance": "Remove public sharing and review snapshot access logs."
   }'
 ```
 
-Resolve a finding (the note is mandatory):
+Resolve a finding:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/findings/FINDING_UUID \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"resolved","resolution_note":"Public sharing removed; access reviewed."}'
+curl -X PATCH "http://127.0.0.1:8000/api/findings/FINDING_UUID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "resolved",
+    "resolution_note": "Public sharing was removed and access logs were reviewed."
+  }'
 ```
 
-Other useful endpoints are `GET /api/findings/{id}`, `GET /api/dashboard/summary`, `GET /health`, and the generated OpenAPI documentation.
+A resolution note is required whenever a finding is moved to `resolved`. Other useful endpoints include `GET /api/findings/{id}`, `GET /api/dashboard/summary`, and `GET /health`. The full request and response schemas are available through `/docs`.
 
 ## Data model
 
-`findings` holds the normalized business record: UUID, source identity, title and description, normalized severity and status, provider/account/resource context, application and team ownership, environment, first-detected and due dates, remediation and resolution text, and created/updated timestamps. `(source, source_finding_id)` is a database uniqueness constraint as well as an import-time duplicate check.
+The `findings` table contains the normalized security record:
 
-`status_audits` records finding ID, old status, new status, and change timestamp. It is intentionally focused on status history for the MVP.
+- Internal UUID and source-specific finding ID
+- Title, description, severity, and status
+- Cloud provider, account, resource type, and resource ID
+- Application, responsible team, and environment
+- First-detected date, due date, and remediation guidance
+- Resolution note and created/updated timestamps
 
-Overdue is not stored. It is calculated from the current date on every read: a finding is overdue when its due date is before today and its status is not `resolved`. This keeps time-dependent state accurate. Suppressed and accepted-risk records remain visible as overdue when their due date has passed, while headline “open” metrics count only `open` and `in_progress` work.
+The combination of `source` and `source_finding_id` is unique. The importer checks for an existing record, and the database constraint provides a second layer of duplicate protection.
+
+The `status_audits` table records the finding ID, previous status, new status, and time of the change. The MVP only audits status transitions; a production system would also record the user or service responsible for the change.
+
+Overdue status is calculated rather than stored. A finding is overdue when its due date is before today and its status is not `resolved`. Calculating it at read time prevents a stored flag from becoming stale overnight. The headline open count includes `open` and `in_progress` findings, while suppressed and accepted-risk findings remain visible in the inventory.
 
 ## Normalization rules
 
-| Source | Source value | Normalized value |
+| Source | Provider value | Dashboard value |
 |---|---|---|
 | AWS severity | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL` | lowercase equivalent |
 | AWS workflow | `NEW`, `NOTIFIED`, `RESOLVED`, `SUPPRESSED` | `open`, `in_progress`, `resolved`, `suppressed` |
 | Azure severity | `High`, `Medium`, `Low`, `Informational` | lowercase equivalent |
 | Azure status | `Active`, `InProgress`, `Resolved`, `Dismissed`, `AcceptedRisk` | `open`, `in_progress`, `resolved`, `suppressed`, `accepted_risk` |
 
-AWS account/resource data comes from `AwsAccountId` and the first `Resources` item. Azure context comes from `properties.resourceDetails`. Sample-only ownership metadata is mapped from AWS `ProductFields` and Azure `properties.metadata`. Unknown enum values and missing required fields fail that individual record, with its array index, source ID when available, and a readable error returned to the caller. Other valid records in the same batch still commit.
+For AWS records, account and resource information comes from `AwsAccountId` and the first item in `Resources`. Azure resource context comes from `properties.resourceDetails`. The sample exports include ownership metadata in AWS `ProductFields` and Azure `properties.metadata`.
+
+If a record is missing a required field or contains an unknown severity or status, that record is rejected with its array index, source ID when available, and a readable error. Other valid records in the same import are still saved.
 
 ## Tests
 
+Run the test suite with:
+
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
-The suite covers both source normalizers, invalid records, partial imports, duplicates, filtering and search, dynamic overdue behavior, resolved transitions, resolution-note enforcement, audit history, summary metrics, CRUD endpoints, health, and rendered pages. GitHub Actions compiles the application, runs all tests, and verifies the Docker build.
+The tests cover both provider normalizers, malformed imports, partial batch success, duplicate prevention, filtering, search, overdue calculations, resolution-note enforcement, status history, summary metrics, API endpoints, health checks, and rendered pages.
 
-## Assumptions
+GitHub Actions runs the tests on every push and pull request. It also compiles the Python source and builds the Docker image.
 
-- Inputs model stable exported payloads rather than the complete vendor schemas.
-- Each source record represents one resource; AWS uses the first listed resource.
-- Dates are ISO 8601 and due dates are calendar dates evaluated in the server's local date.
-- Owner, application, and environment are mandatory because remediation metrics without ownership are not useful.
-- Imports are synchronous and intended for small demo batches.
+## Assumptions and scope
+
+- The sample files represent useful subsets of the provider exports, not their complete schemas.
+- Each input finding refers to one primary resource. For AWS findings, the first resource is used.
+- Timestamps use ISO 8601, and due dates are evaluated against the server's calendar date.
+- Application, owner, and environment are required because remediation reporting is much less useful without ownership context.
+- Imports are synchronous and designed for small demonstration batches.
+- The application imports simulated data and does not require access to a real AWS or Azure account.
 
 ## Security considerations
 
-Imported content is untrusted: Pydantic constrains types and sizes, required fields are checked, SQLAlchemy parameterizes database queries, and the UI HTML-escapes API content before inserting it. The service contains no cloud credentials or secrets and should receive its database URL through the environment. Docker runs as a non-root user. In production, add authentication and role-based authorization, request-size and rate limits, CSRF protection for cookie-authenticated write operations, a restrictive content-security policy, structured security logs, dependency/image scanning, encrypted backups, and TLS at the edge.
+Imported records are treated as untrusted input. Pydantic validates their types and field lengths, required source fields are checked explicitly, SQLAlchemy parameterizes database queries, and the frontend escapes values before placing API content into the page.
 
-SQLite is suitable for this single-process MVP, not a horizontally scaled or high-write deployment. Error responses are designed to help operators without returning stack traces.
+The repository contains no cloud credentials or application secrets. The database URL can be supplied through the environment, and the Docker container runs as a non-root user.
+
+This is still an MVP, not an internet-facing production service. A real deployment would need authentication, role-based authorization, request-size and rate limits, TLS, structured audit logging, a restrictive content security policy, dependency and image scanning, and encrypted backups. SQLite is appropriate for this single-service demonstration but not for a high-write or horizontally scaled deployment.
 
 ## False positives and accepted risk
 
-`suppressed` is intended for a false positive, duplicate signal, or non-applicable control. `accepted_risk` represents a real exposure with a documented business decision. They are separate so metrics do not imply that a known risk was technically remediated. A production workflow should require rationale, approver, expiry/review date, and compensating controls for both; accepted risk should automatically return to review at expiry. The MVP stores the rationale in `resolution_note` when provided but does not enforce approval governance.
+The dashboard keeps `suppressed` and `accepted_risk` separate because they mean different things.
 
-## Production improvements
+A suppressed finding is generally a false positive, duplicate signal, or control that does not apply. Accepted risk means the exposure is real, but the organization has made a documented decision not to remediate it immediately. Neither should be presented as though the technical problem was fixed.
 
-- PostgreSQL, Alembic migrations, transactional batch imports, pagination, and background jobs for large feeds
-- OIDC/SSO, RBAC, tenant isolation, and immutable actor-aware audit events
-- Native Security Hub and Defender connectors using workload identity and least-privilege read access
-- Configurable SLA policies, business calendars, risk acceptance expiry, and service ownership catalog integration
-- Trend snapshots, mean-time-to-remediate, aging buckets, export, saved views, and accessible chart components
-- Observability with structured logs, traces, metrics, health/readiness checks, and alerting
-- Schema versioning, idempotency keys, import file limits, malware/content scanning where appropriate, and dead-letter handling
-- Browser accessibility tests, load tests, database backup/restore exercises, and a full security review
+In a production workflow, both decisions should include a reason, approver, review date, and any compensating controls. Accepted risks should return for review when they expire. This MVP can retain supporting context in the resolution note, but it does not implement an approval workflow.
+
+## What I would add next
+
+The first production step would be replacing SQLite with PostgreSQL and adding Alembic migrations. From there, the most useful improvements would be:
+
+- Native read-only connectors for Security Hub and Defender for Cloud
+- Scheduled or event-driven imports with pagination and retry handling
+- OIDC single sign-on and role-based permissions
+- Actor-aware, immutable audit events
+- Risk-acceptance approvals and expiration dates
+- Configurable remediation SLAs and aging metrics
+- Pagination, exports, saved filters, and trend reporting
+- Structured logs, metrics, traces, readiness checks, and backup testing
+
+These features are intentionally outside the MVP so the current project remains small enough to understand, run, and review.
