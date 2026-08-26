@@ -1,0 +1,12 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////data/cloud_security.db
+    volumes:
+      - dashboard-data:/data
+    restart: unless-stopped
+volumes:
+  dashboard-data:

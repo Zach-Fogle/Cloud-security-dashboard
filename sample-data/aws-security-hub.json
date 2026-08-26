@@ -1,0 +1,41 @@
+{
+  "source": "aws_security_hub",
+  "records": [
+    {
+      "Id": "arn:aws:securityhub:us-east-1:111122223333:subscription/aws-foundational-security-best-practices/v/1.0.0/S3.1/finding/01",
+      "AwsAccountId": "111122223333",
+      "Title": "S3 bucket permits public read access",
+      "Description": "The customer-uploads bucket policy grants s3:GetObject to all principals.",
+      "Severity": {"Label": "CRITICAL"},
+      "Workflow": {"Status": "NEW"},
+      "Resources": [{"Type": "AwsS3Bucket", "Id": "arn:aws:s3:::acme-customer-uploads"}],
+      "FirstObservedAt": "2026-06-02T14:22:10Z",
+      "ProductFields": {"Application": "Customer Portal", "Owner": "Cloud Platform", "Environment": "production", "DueDate": "2026-06-09"},
+      "Remediation": {"Recommendation": {"Text": "Enable S3 Block Public Access and replace the public bucket statement with a scoped CloudFront origin access control."}}
+    },
+    {
+      "Id": "arn:aws:securityhub:us-east-1:111122223333:control/IAM.4/finding/02",
+      "AwsAccountId": "111122223333",
+      "Title": "IAM root account lacks hardware MFA",
+      "Description": "The AWS account root user is not protected by a hardware MFA device.",
+      "Severity": {"Label": "HIGH"},
+      "Workflow": {"Status": "NOTIFIED"},
+      "Resources": [{"Type": "AwsAccount", "Id": "AWS::::Account:111122223333"}],
+      "FirstObservedAt": "2026-07-12T09:05:00Z",
+      "ProductFields": {"Application": "Shared Services", "Owner": "Identity & Access", "Environment": "production", "DueDate": "2026-08-12"},
+      "Remediation": {"Recommendation": {"Text": "Register two FIDO2 security keys for the root user and store them in separate controlled locations."}}
+    },
+    {
+      "Id": "arn:aws:securityhub:us-west-2:444455556666:control/EC2.8/finding/03",
+      "AwsAccountId": "444455556666",
+      "Title": "EC2 instance exposes SSH to the internet",
+      "Description": "A security group permits inbound TCP/22 from 0.0.0.0/0.",
+      "Severity": {"Label": "HIGH"},
+      "Workflow": {"Status": "NEW"},
+      "Resources": [{"Type": "AwsEc2Instance", "Id": "arn:aws:ec2:us-west-2:444455556666:instance/i-0abc123def456"}],
+      "FirstObservedAt": "2026-08-01T17:31:00Z",
+      "ProductFields": {"Application": "Analytics Pipeline", "Owner": "Data Platform", "Environment": "staging", "DueDate": "2026-08-08"},
+      "Remediation": {"Recommendation": {"Text": "Remove the public SSH rule and use AWS Systems Manager Session Manager for administrative access."}}
+    }
+  ]
+}

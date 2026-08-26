@@ -1,0 +1,38 @@
+{
+  "source": "microsoft_defender_cloud",
+  "records": [
+    {
+      "id": "/subscriptions/77778888-9999-aaaa-bbbb-ccccdddd0000/providers/Microsoft.Security/assessments/az-001",
+      "properties": {
+        "displayName": "Storage account allows anonymous blob access",
+        "description": "Public blob access is enabled on a production storage account.",
+        "severity": "High", "status": "Active", "timeGenerated": "2026-06-18T11:40:00Z",
+        "resourceDetails": {"subscriptionId": "77778888-9999-aaaa-bbbb-ccccdddd0000", "resourceType": "Microsoft.Storage/storageAccounts", "resourceId": "/subscriptions/77778888-9999-aaaa-bbbb-ccccdddd0000/resourceGroups/rg-payments/providers/Microsoft.Storage/storageAccounts/paymentsexports"},
+        "metadata": {"application": "Payments", "owner": "Payments Engineering", "environment": "production", "dueDate": "2026-06-25"},
+        "remediationDescription": "Disable allowBlobPublicAccess and use short-lived user delegation SAS tokens for authorized downloads."
+      }
+    },
+    {
+      "id": "/subscriptions/77778888-9999-aaaa-bbbb-ccccdddd0000/providers/Microsoft.Security/assessments/az-002",
+      "properties": {
+        "displayName": "Key Vault soft delete retention is below policy",
+        "description": "The vault retains deleted secrets for only seven days rather than the required 90 days.",
+        "severity": "Medium", "status": "InProgress", "timeGenerated": "2026-07-21T08:12:00Z",
+        "resourceDetails": {"subscriptionId": "77778888-9999-aaaa-bbbb-ccccdddd0000", "resourceType": "Microsoft.KeyVault/vaults", "resourceId": "/subscriptions/77778888-9999-aaaa-bbbb-ccccdddd0000/resourceGroups/rg-core/providers/Microsoft.KeyVault/vaults/kv-platform-prod"},
+        "metadata": {"application": "Core Platform", "owner": "Cloud Platform", "environment": "production", "dueDate": "2026-08-20"},
+        "remediationDescription": "Set softDeleteRetentionInDays to 90 and enable purge protection."
+      }
+    },
+    {
+      "id": "/subscriptions/22223333-4444-5555-6666-777788889999/providers/Microsoft.Security/assessments/az-003",
+      "properties": {
+        "displayName": "Container registry uses admin credentials",
+        "description": "The built-in registry admin account remains enabled.",
+        "severity": "Low", "status": "AcceptedRisk", "timeGenerated": "2026-05-11T15:00:00Z",
+        "resourceDetails": {"subscriptionId": "22223333-4444-5555-6666-777788889999", "resourceType": "Microsoft.ContainerRegistry/registries", "resourceId": "/subscriptions/22223333-4444-5555-6666-777788889999/resourceGroups/rg-dev/providers/Microsoft.ContainerRegistry/registries/acmedev"},
+        "metadata": {"application": "Developer Tooling", "owner": "Developer Experience", "environment": "development", "dueDate": "2026-09-01"},
+        "remediationDescription": "Disable the admin account and authenticate workloads through managed identities with scoped AcrPull roles."
+      }
+    }
+  ]
+}
