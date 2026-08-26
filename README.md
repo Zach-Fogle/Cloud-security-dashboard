@@ -4,7 +4,9 @@ Cloud security tools are good at finding problems, but each provider reports the
 
 The application validates each imported record, converts provider-specific fields into a shared model, stores the result in SQLite, and displays the findings in a searchable dashboard. It is intentionally a focused MVP: there are no live cloud credentials, automated remediations, or unnecessary services involved.
 
-> **Screenshot:** A dashboard screenshot will be added at `docs/dashboard.png`.
+## Screenshot
+
+![Cloud Security Findings Dashboard](docs/dashboard.png)
 
 ## What it does
 
