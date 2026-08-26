@@ -190,19 +190,4 @@ The dashboard keeps `suppressed` and `accepted_risk` separate because they mean 
 
 A suppressed finding is generally a false positive, duplicate signal, or control that does not apply. Accepted risk means the exposure is real, but the organization has made a documented decision not to remediate it immediately. Neither should be presented as though the technical problem was fixed.
 
-In a production workflow, both decisions should include a reason, approver, review date, and any compensating controls. Accepted risks should return for review when they expire. This MVP can retain supporting context in the resolution note, but it does not implement an approval workflow.
-
-## What I would add next
-
-The first production step would be replacing SQLite with PostgreSQL and adding Alembic migrations. From there, the most useful improvements would be:
-
-- Native read-only connectors for Security Hub and Defender for Cloud
-- Scheduled or event-driven imports with pagination and retry handling
-- OIDC single sign-on and role-based permissions
-- Actor-aware, immutable audit events
-- Risk-acceptance approvals and expiration dates
-- Configurable remediation SLAs and aging metrics
-- Pagination, exports, saved filters, and trend reporting
-- Structured logs, metrics, traces, readiness checks, and backup testing
-
-These features are intentionally outside the MVP so the current project remains small enough to understand, run, and review.
+In a production workflow, both decisions should include a reason, approver, review date, and any compensating controls. Accepted risks should return for review when they expire. This MVP can retain supporting context in the resolution note, but it does not implement an approval 
