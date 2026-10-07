@@ -4,6 +4,10 @@ Cloud security tools are good at finding problems, but each provider reports the
 
 The application validates each imported record, converts provider-specific fields into a shared model, stores the result in SQLite, and displays the findings in a searchable dashboard. It is intentionally a focused MVP: there are no live cloud credentials, automated remediations, or unnecessary services involved.
 
+## Project status
+
+Local portfolio MVP using simulated provider exports. Live cloud ingestion, authentication and role-based access control are not implemented. The dashboard tracks remediation; it does not modify cloud resources.
+
 ## Screenshot
 
 ![Cloud Security Findings Dashboard](docs/dashboard.png)
@@ -190,4 +194,4 @@ The dashboard keeps `suppressed` and `accepted_risk` separate because they mean 
 
 A suppressed finding is generally a false positive, duplicate signal, or control that does not apply. Accepted risk means the exposure is real, but the organization has made a documented decision not to remediate it immediately. Neither should be presented as though the technical problem was fixed.
 
-In a production workflow, both decisions should include a reason, approver, review date, and any compensating controls. Accepted risks should return for review when they expire. This MVP can retain supporting context in the resolution note, but it does not implement an approval 
+In a production workflow, both decisions should include a reason, approver, review date, and any compensating controls. Accepted risks should return for review when they expire. This MVP can retain supporting context in the resolution note, but it does not implement an approval workflow.
